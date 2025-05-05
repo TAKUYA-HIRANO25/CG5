@@ -4,6 +4,34 @@
 
 using namespace KamataEngine;
 
+ID3DBlob* CompileShader(const std::wstring& filePath, const std::string& shaderModel);
+
+// シェーダーコンパイル関数
+ID3DBlob* CompileShader(const std::wstring& filePath, const std::string& shaderModel) {
+	ID3DBlob* shaderBlob = nullptr;
+	ID3DBlob* errorBlob = nullptr;
+
+	HRESULT hr =
+	    D3DCompileFromFile(
+			filePath.c_str(), 
+			nullptr, 
+			D3D_COMPILE_STANDARD_FILE_INCLUDE, 
+			"main", shaderModel.c_str(), 
+			D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 
+			0, &shaderBlob, &errorBlob);
+	// エラーが発生した場合、止める
+	if (FAILED(hr)) {
+		if (errorBlob) {
+			OutputDebugStringA(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
+			errorBlob->Release();
+		}
+		assert(false);
+	}
+	// 生成したshaderBlobを返す
+	return shaderBlob;
+}
+
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
@@ -162,7 +190,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		if (KamataEngine::Update()) {
 			break;
 		}
-		
+
+		// 描画開始
 		dxCommon->PreDraw();
 
 		// コマンドを読む
