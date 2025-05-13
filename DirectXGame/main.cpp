@@ -1,36 +1,10 @@
 #include "KamataEngine.h"
+#include "Shader.h"
 #include <Windows.h>
 #include <d3dcompiler.h>
+#include <cassert>
 
 using namespace KamataEngine;
-
-ID3DBlob* CompileShader(const std::wstring& filePath, const std::string& shaderModel);
-
-// シェーダーコンパイル関数
-ID3DBlob* CompileShader(const std::wstring& filePath, const std::string& shaderModel) {
-	ID3DBlob* shaderBlob = nullptr;
-	ID3DBlob* errorBlob = nullptr;
-
-	HRESULT hr =
-	    D3DCompileFromFile(
-			filePath.c_str(), 
-			nullptr, 
-			D3D_COMPILE_STANDARD_FILE_INCLUDE, 
-			"main", shaderModel.c_str(), 
-			D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 
-			0, &shaderBlob, &errorBlob);
-	// エラーが発生した場合、止める
-	if (FAILED(hr)) {
-		if (errorBlob) {
-			OutputDebugStringA(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
-			errorBlob->Release();
-		}
-		assert(false);
-	}
-	// 生成したshaderBlobを返す
-	return shaderBlob;
-}
-
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
@@ -92,41 +66,27 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 #pragma endregion
 
 #pragma region VertexShaderをCompile
-	// コンパイル済みのShader,エラー時情報の格納場所の用意
-	ID3DBlob* vsBlob = nullptr;
-	ID3DBlob* psBlob = nullptr;
-	ID3DBlob* errorBlob = nullptr;
-	// 頂点シェーダーの読み込みとコンパイル
-	std::wstring vsFile = L"Resources/shaders/TestVS.hlsl";
-	hr = D3DCompileFromFile(vsFile.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, &vsBlob, &errorBlob);
-	if (FAILED(hr)) {
-		DebugText::GetInstance()->ConsolePrintf(std::system_category().message(hr).c_str());
-		if (errorBlob) {
-			DebugText::GetInstance()->ConsolePrintf(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
-		}
-		assert(false);
-	}
+	
+
+	Shader vs;
+	vs.Load(L"Resources/shaders/TestVS.hlsl", "vs_5_0");
+	assert(vs.GetBlod() != nullptr);
 #pragma endregion
 
 #pragma region PixelShaderをCompile
-	// PixelShaderの読み込みとコンパイル
-	std::wstring psFile = L"Resources/Shaders/TestPS.hlsl";
-	hr = D3DCompileFromFile(psFile.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, &psBlob, &errorBlob);
-	if (FAILED(hr)) {
-		DebugText::GetInstance()->ConsolePrintf(std::system_category().message(hr).c_str());
-		if (errorBlob) {
-			DebugText::GetInstance()->ConsolePrintf(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
-		}
-		assert(false);
-	}
+
+	Shader ps;
+	ps.Load(L"Resources/Shaders/TestPS.hlsl", "ps_5_0");
+	assert(ps.GetBlod() != nullptr);
+
 #pragma endregion
 
 #pragma region PSO(PiplineStateObject)の生成
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
 	graphicsPipelineStateDesc.pRootSignature = rootSignature;
 	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;
-	graphicsPipelineStateDesc.VS = {vsBlob->GetBufferPointer(), vsBlob->GetBufferSize()};
-	graphicsPipelineStateDesc.PS = {psBlob->GetBufferPointer(), psBlob->GetBufferSize()};
+	graphicsPipelineStateDesc.VS = {vs.GetBlod()->GetBufferPointer(), vs.GetBlod()->GetBufferSize()};
+	graphicsPipelineStateDesc.PS = {ps.GetBlod()->GetBufferPointer(), ps.GetBlod()->GetBufferSize()};
 	graphicsPipelineStateDesc.BlendState = blendDesc;
 	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;
 	// 書き込むRTVの情報
@@ -211,12 +171,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	vertexResource->Release();
 	graphicsPipelineState->Release();
 	signatureBlob->Release();
-	if (errorBlob) {
-		errorBlob->Release();
-	}
 	rootSignature->Release();
-	vsBlob->Release();
-	psBlob->Release();
 
 	// エンジンの終了処理
 	KamataEngine::Finalize();
