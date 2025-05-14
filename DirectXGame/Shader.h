@@ -1,8 +1,9 @@
 #pragma once
 #include <string>
+#include <d3d12.h>
+
 #include <d3dcompiler.h>
 #include <dxcapi.h>
-#pragma comment(lib, "dxcompiler.lib")
 
 class Shader {
 public:

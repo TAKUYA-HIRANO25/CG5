@@ -1,8 +1,8 @@
 #include "Shader.h"
-#include <d3dcompiler.h>
 #include <cassert>
 #include "MiscUtility.h"
 
+#pragma comment(lib, "dxcompiler.lib")
 void Shader::Load(const std::wstring& filePath, const std::wstring& shaderModel) {
 	// コンパイル済みのShader,エラー時情報の格納場所の用意
 	ID3DBlob* shaderBlob = nullptr;
