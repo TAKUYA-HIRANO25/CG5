@@ -69,14 +69,14 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	
 
 	Shader vs;
-	vs.Load(L"Resources/shaders/TestVS.hlsl", "vs_5_0");
+	vs.Load(L"Resources/shaders/TestVS.hlsl", L"vs_5_0");
 	assert(vs.GetBlod() != nullptr);
 #pragma endregion
 
 #pragma region PixelShaderをCompile
 
 	Shader ps;
-	ps.Load(L"Resources/Shaders/TestPS.hlsl", "ps_5_0");
+	ps.Load(L"Resources/Shaders/TestPS.hlsl", L"ps_5_0");
 	assert(ps.GetBlod() != nullptr);
 
 #pragma endregion
