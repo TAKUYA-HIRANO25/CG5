@@ -69,15 +69,15 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	
 
 	Shader vs;
-	vs.Load(L"Resources/shaders/TestVS.hlsl", L"vs_5_0");
-	assert(vs.GetBlod() != nullptr);
+	vs.LoadDxc(L"Resources/shaders/TestVS.hlsl", L"vs_6_0");
+	assert(vs.GetDxcBlob() != nullptr);
 #pragma endregion
 
 #pragma region PixelShaderをCompile
 
 	Shader ps;
-	ps.Load(L"Resources/Shaders/TestPS.hlsl", L"ps_5_0");
-	assert(ps.GetBlod() != nullptr);
+	ps.LoadDxc(L"Resources/Shaders/TestPS.hlsl", L"ps_6_0");
+	assert(ps.GetDxcBlob() != nullptr);
 
 #pragma endregion
 
@@ -85,8 +85,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
 	graphicsPipelineStateDesc.pRootSignature = rootSignature;
 	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;
-	graphicsPipelineStateDesc.VS = {vs.GetBlod()->GetBufferPointer(), vs.GetBlod()->GetBufferSize()};
-	graphicsPipelineStateDesc.PS = {ps.GetBlod()->GetBufferPointer(), ps.GetBlod()->GetBufferSize()};
+	graphicsPipelineStateDesc.VS = {vs.GetDxcBlob()->GetBufferPointer(), vs.GetDxcBlob()->GetBufferSize()};
+	graphicsPipelineStateDesc.PS = {ps.GetDxcBlob()->GetBufferPointer(), ps.GetDxcBlob()->GetBufferSize()};
 	graphicsPipelineStateDesc.BlendState = blendDesc;
 	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;
 	// 書き込むRTVの情報

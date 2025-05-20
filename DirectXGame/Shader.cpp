@@ -30,26 +30,29 @@ void Shader::Load(const std::wstring& filePath, const std::wstring& shaderModel)
 // シェーダーファイルを読み込み、コンパイルする
 // *外部コンパイル版 シェーダーモデル 6.0以上で利用する
 void Shader::LoadDxc(const std::wstring& filePath, const std::wstring& shaderModel) {
-	// DXC(DirectX Shader Comipiler)を初期化
+	// DXC(DirectX Shader Compiler)を初期化
 	static IDxcUtils* dxcUtils = nullptr;
-	static IDxcCompiler3* dxccompiler = nullptr;
+	static IDxcCompiler3* dxcCompiler = nullptr;
 	static IDxcIncludeHandler* includeHandler = nullptr;
 
 	HRESULT hr;
+
 	if (dxcUtils == nullptr) {
-		hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcUtils));
-		assert(SUCCEEDED(hr));
-	}
-	if (dxccompiler == nullptr) {
-		hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxccompiler));
-		assert(SUCCEEDED(hr));
-	}
-	if (includeHandler == nullptr) {
-		hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&includeHandler));
+		hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils));
 		assert(SUCCEEDED(hr));
 	}
 
-	// 1. Hlslファイルを読む
+	if (dxcCompiler == nullptr) {
+		hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler));
+		assert(SUCCEEDED(hr));
+	}
+
+	if (includeHandler == nullptr) {
+		hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
+		assert(SUCCEEDED(hr));
+	}
+
+	// 1. hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	hr = dxcUtils->LoadFile(filePath.c_str(), nullptr, &shaderSource);
 	assert(SUCCEEDED(hr));
@@ -61,38 +64,55 @@ void Shader::LoadDxc(const std::wstring& filePath, const std::wstring& shaderMod
 	shaderSourceBuffer.Encoding = DXC_CP_UTF8;
 
 	// 2. Compileする
-	//    Compileに必要なコンパイルオプションの準備
+	// Compileに必要なコンパイルオプションの準備
 	LPCWSTR arguments[] = {
-	    filePath.c_str(),
+	    filePath.c_str(), // コンパイル対象のhlslファイル名
 	    L"-E",
-	    L"main",
+	    L"main", // エントリーポイントの指定。
 	    L"-T",
-	    shaderModel.c_str(),
+	    shaderModel.c_str(), // ShaderProfileの設定
 	    L"-Zi",
-	    L"-Qembed_debug",
-	    L"-Qd",
-	    L"-Zpr",
+	    L"-Qembed_debug", // デバッグ用の情報を埋め込む
+	    L"-Od",           // 最適化を外しておく
+	    L"-Zpr",          // メモリレイアウトは行優先
 	};
-
 	// 実際にShaderをコンパイルする
 	IDxcResult* shaderResult = nullptr;
-	hr = dxccompiler->Compile(
-		&shaderSourceBuffer, 
-		arguments, _countof(arguments), 
-		includeHandler, 
-		IID_PPV_ARGS(&shaderResult)
+	hr = dxcCompiler->Compile(
+	    &shaderSourceBuffer,        // 読み込んだファイル
+	    arguments,                  // コンパイルオプション
+	    _countof(arguments),        // コンパイルオプションの数
+	    includeHandler,             // includeが含まれた諸々
+	    IID_PPV_ARGS(&shaderResult) // コンパイル結果
 	);
+	// コンパイルエラーではなくdxcが起動できないなど致命的な状況
 	assert(SUCCEEDED(hr));
 
-	// 3. 警告 エラーが出ていないか確認する
-	IDxcBlobUtf8* shadererror = nullptr;
+	// 3. 警告・エラーが出ていないか確認する
+	IDxcBlobUtf8* shaderError = nullptr;
 	IDxcBlobWide* nameBlob = nullptr;
 
+	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), &nameBlob);
+	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
+		OutputDebugStringA(shaderError->GetStringPointer());
+		assert(false);
+	}
+
+	// 4. Compile結果を受け取る
+	IDxcBlob* shaderBlob = nullptr;
+	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), &nameBlob);
+	assert(SUCCEEDED(hr));
+
+	// もう使わないリソースを開放
+	shaderSource->Release();
+	shaderResult->Release();
+
+	// 実行用のバイナリをとっておく
+	dxcBlob_ = shaderBlob;
 }
 
-ID3DBlob* Shader::GetBlod() { 
-	return blob_;
-
+IDxcBlob* Shader::GetDxcBlob() { 
+	return dxcBlob_; 
 }
 
 Shader::Shader() {
@@ -101,9 +121,9 @@ Shader::Shader() {
 
 Shader::~Shader() {
 
-	if (blob_ != nullptr) {
-		blob_->Release();
-		blob_ = nullptr;
+	if (dxcBlob_ != nullptr) {
+		dxcBlob_->Release();
+		dxcBlob_ = nullptr;
 	}
 
 }

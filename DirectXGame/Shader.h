@@ -12,8 +12,6 @@ public:
 	void LoadDxc(const std::wstring& filePath, const std::wstring& shaderModel);
 
 	// 生成したコンパイル済みデータ取得する
-	ID3DBlob* GetBlod();
-
 	IDxcBlob* GetDxcBlob();
 
 	// コンストラクタ

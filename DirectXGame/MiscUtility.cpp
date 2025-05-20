@@ -23,11 +23,13 @@ std::string ConvertString(const std::wstring& str) {
 	if (str.empty()) {
 		return std::string();
 	}
-	auto sizeNeede = MultiByteToWideChar(CP_UTF8, 0, reinterpret_cast<const char*>(&str[0]), static_cast<int>(str.size()), NULL, 0);
+	auto sizeNeede = WideCharToMultiByte(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), NULL, 0,
+		NULL,NULL);
 	if (sizeNeede == 0) {
 		return std::string();
 	}
 	std::string result(sizeNeede, 0);
-	MultiByteToWideChar(CP_UTF8, 0, reinterpret_cast<const char*>(&str[0]), static_cast<int>(str.size()), &result[0], sizeNeede);
+	WideCharToMultiByte(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), result.data(), sizeNeede,
+		NULL,NULL);
 	return result;
 }
